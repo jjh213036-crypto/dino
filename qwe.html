@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Игра Динозаврик</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #fff;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            border: none;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 28px;
+            color: #000;
+            font-weight: bold;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #000;
+            display: none;
+            text-align: center;
+        }
+        #restartBtn {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px 20px;
+            font-size: 24px;
+            background-color: #ccc;
+            color: #000;
+            border: 1px solid #000;
+            cursor: pointer;
+            display: none;
+        }
+        #restartBtn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Очки: 0</div>
+    <div id="gameOver">Игра окончена!</div>
+    <button id="restartBtn" onclick="restartGame()">Перезапустить</button>
+    <canvas id="gameCanvas" width="800" height="200"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('gameOver');
+        const restartBtn = document.getElementById('restartBtn');
+
+        const dinoImg = new Image();
+        dinoImg.src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAPBLUu2Txczb_V7VKng7rTGiW7X8cyuN2fQ&s';
+        ctx.imageSmoothingEnabled = false;
+
+        let dino = { x: 50, y: 134, width: 56, height: 36, dy: 0, jumping: false };
+        let obstacles = [];
+        let score = 0;
+        let gameRunning = true;
+        let speed = 6;
+
+        function drawDino() {
+            if (dinoImg.complete && dinoImg.naturalWidth) {
+                ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+            } else {
+                ctx.fillStyle = '#808080';
+                ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+            }
+        }
+
+        function drawObstacle(obstacle) {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(obstacle.x + obstacle.width / 2 - 3, obstacle.y, 6, obstacle.height);
+            ctx.fillRect(obstacle.x, obstacle.y + 10, obstacle.width, 4);
+            ctx.fillRect(obstacle.x + 5, obstacle.y + 20, obstacle.width - 5, 4);
+            ctx.fillRect(obstacle.x + 2, obstacle.y + 30, obstacle.width - 2, 4);
+        }
+
+        function drawGround() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 170, canvas.width, 2);
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            speed = Math.min(6 + Math.floor(score / 100), 70);
+
+            if (dino.jumping) {
+                dino.dy += 0.6;
+                dino.y += dino.dy;
+                if (dino.y >= 134) {
+                    dino.y = 134;
+                    dino.jumping = false;
+                    dino.dy = 0;
+                }
+            }
+
+            obstacles.forEach(obstacle => {
+                obstacle.x -= speed;
+            });
+
+            obstacles = obstacles.filter(obstacle => obstacle.x > -obstacle.width);
+
+            if (Math.random() < 0.008) {
+                let height = Math.random() * 30 + 30;
+                obstacles.push({ x: canvas.width, y: 170 - height, width: 20, height: height });
+            }
+
+            obstacles.forEach(obstacle => {
+                if (dino.x < obstacle.x + obstacle.width &&
+                    dino.x + dino.width > obstacle.x &&
+                    dino.y < obstacle.y + obstacle.height &&
+                    dino.y + dino.height > obstacle.y) {
+                    gameRunning = false;
+                    gameOverElement.style.display = 'block';
+                    restartBtn.style.display = 'block';
+                }
+            });
+
+            score++;
+            scoreElement.textContent = 'Очки: ' + Math.floor(score / 10);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawGround();
+            drawDino();
+            obstacles.forEach(drawObstacle);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function restartGame() {
+            dino = { x: 50, y: 134, width: 56, height: 36, dy: 0, jumping: false };
+            obstacles = [];
+            score = 0;
+            speed = 6;
+            gameRunning = true;
+            gameOverElement.style.display = 'none';
+            restartBtn.style.display = 'none';
+            gameLoop();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !dino.jumping && gameRunning) {
+                dino.jumping = true;
+                dino.dy = -12;
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
